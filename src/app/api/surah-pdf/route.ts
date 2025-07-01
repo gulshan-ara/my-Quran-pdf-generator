@@ -4,40 +4,48 @@ import { generatePDFWithPuppeteer } from '@/utils/pdf';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const surahId = searchParams.get('surah') || '1';
+  const surahParam = searchParams.get('surah') || '1';
   const translationId = searchParams.get('translation') || '131';
 
-  // Fetch surah info
-  const surahRes = await fetch(`https://api.quran.com/api/v4/chapters/${surahId}`);
-  const surahData = await surahRes.json();
-  const surah = surahData.chapter;
+  // Support multiple surah IDs
+  const surahIds = surahParam.split(',');
+  const surahDataArr = [];
 
-  // Fetch verses
-  const versesRes = await fetch(
-    `https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${surahId}`
-  );
-  const versesData = await versesRes.json();
+  for (const surahId of surahIds) {
+    // Fetch surah info
+    const surahRes = await fetch(`https://api.quran.com/api/v4/chapters/${surahId}`);
+    const surahData = await surahRes.json();
+    const surah = surahData.chapter;
 
-  // Fetch translations (e.g., English, id=131)
-  const translationRes = await fetch(
-    `https://api.quran.com/api/v4/quran/translations/${translationId}?chapter_number=${surahId}`
-  );
-  const translationData = await translationRes.json();
+    // Fetch verses
+    const versesRes = await fetch(
+      `https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${surahId}`
+    );
+    const versesData = await versesRes.json();
 
-  // Merge translations into verses
-  const verses = versesData.verses.map((verse: any, idx: number) => ({
-    ...verse,
-    translations: [translationData.translations[idx]],
-  }));
+    // Fetch translations (e.g., English, id=131)
+    const translationRes = await fetch(
+      `https://api.quran.com/api/v4/quran/translations/${translationId}?chapter_number=${surahId}`
+    );
+    const translationData = await translationRes.json();
 
-  // Generate PDF
-  const pdf = await generatePDFWithPuppeteer(surah, verses);
+    // Merge translations into verses
+    const verses = versesData.verses.map((verse: any, idx: number) => ({
+      ...verse,
+      translations: [translationData.translations[idx]],
+    }));
+
+    surahDataArr.push({ surah, verses });
+  }
+
+  // Generate PDF for all surahs
+  const pdf = await generatePDFWithPuppeteer(surahDataArr);
 
   return new NextResponse(pdf, {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="surah-${surahId}.pdf"`,
+      'Content-Disposition': `attachment; filename="surahs-${surahIds.join('-')}.pdf"`,
     },
   });
 }
