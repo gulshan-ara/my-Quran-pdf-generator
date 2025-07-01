@@ -1,102 +1,142 @@
+"use client";
 import Image from "next/image";
+import surahNames from "../utils/surahNames.json";
+import { useRef, useState } from "react";
+
+const TRANSLATION_OPTIONS = [
+  { value: "131", label: "English" },
+  { value: "85", label: "Urdu" },
+  { value: "57", label: "Hindi" },
+  { value: "19", label: "Bengali" },
+  { value: "33", label: "French" },
+  { value: "50", label: "Turkish" },
+  { value: "32", label: "Indonesian" },
+];
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [selectedSurahs, setSelectedSurahs] = useState<string[]>([]);
+  const surahRef = useRef<HTMLSelectElement>(null);
+  const translationRef = useRef<HTMLSelectElement>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const handleAddSurah = () => {
+    const surahValue = surahRef.current!.value;
+    if (!selectedSurahs.includes(surahValue)) {
+      setSelectedSurahs([...selectedSurahs, surahValue]);
+    }
+  };
+
+  const handleRemoveSurah = (surahToRemove: string) => {
+    setSelectedSurahs(selectedSurahs.filter(surah => surah !== surahToRemove));
+  };
+
+  const handleGeneratePDF = async () => {
+    if (selectedSurahs.length === 0) {
+      alert("Please select at least one surah");
+      return;
+    }
+    
+    const translation = translationRef.current!.value;
+    const surahsParam = selectedSurahs.join(',');
+    const url = `/api/surah-pdf?surah=${surahsParam}&translation=${translation}`;
+    
+    const res = await fetch(url);
+    if (!res.ok) {
+      alert("Failed to generate PDF");
+      return;
+    }
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.download = `surahs-${selectedSurahs.join('-')}.pdf`;
+    link.click();
+    window.URL.revokeObjectURL(link.href);
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen items-center justify-center bg-gradient-to-br from-[#f8fafc] to-[#e0e7ef] p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 flex flex-col gap-8 items-center">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center text-[#1e293b] mb-2 tracking-tight">
+          Make Your Daily Quran & Dua Book
+        </h1>
+        <form className="w-full flex flex-col gap-6" onSubmit={e => e.preventDefault()}>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="surah" className="font-medium text-[#334155]">
+              Select Surah <span className="text-xs text-[#64748b]">(1-114)</span>
+            </label>
+            <div className="flex gap-2">
+              <select
+                id="surah"
+                name="surah"
+                className="flex-1 border border-[#cbd5e1] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6366f1] text-[#334155] text-base"
+                defaultValue="1"
+                ref={surahRef}
+              >
+                {Object.entries(surahNames).map(([num, name]) => (
+                  <option key={num} value={num}>
+                    {num}. {name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleAddSurah}
+                className="bg-[#6366f1] hover:bg-[#4f46e5] text-white font-semibold px-4 py-2 rounded-xl shadow transition-colors text-base tracking-wide"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          {/* Selected Surahs Display */}
+          {selectedSurahs.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <label className="font-medium text-[#334155]">Selected Surahs:</label>
+              <div className="flex flex-wrap gap-2 p-3 bg-[#f1f5f9] rounded-lg border border-[#e2e8f0]">
+                {selectedSurahs.map((surahNum) => (
+                  <div
+                    key={surahNum}
+                    className="flex items-center gap-2 bg-[#6366f1] text-white px-3 py-1 rounded-full text-sm"
+                  >
+                    <span>{surahNum}. {surahNames[surahNum as keyof typeof surahNames]}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSurah(surahNum)}
+                      className="hover:bg-[#4f46e5] rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="translation" className="font-medium text-[#334155]">Translation</label>
+            <select
+              id="translation"
+              name="translation"
+              className="border border-[#cbd5e1] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6366f1] text-[#334155] text-base"
+              defaultValue="131"
+              ref={translationRef}
+            >
+              {TRANSLATION_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="mt-4 w-full bg-[#6366f1] hover:bg-[#4f46e5] text-white font-semibold py-3 rounded-xl shadow transition-colors text-lg tracking-wide disabled:bg-[#94a3b8] disabled:cursor-not-allowed"
+            onClick={handleGeneratePDF}
+            disabled={selectedSurahs.length === 0}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+            Generate PDF ({selectedSurahs.length} surah{selectedSurahs.length !== 1 ? 's' : ''})
+          </button>
+        </form>
+      </div>
+      <footer className="mt-10 text-xs text-[#64748b] text-center opacity-80">
+        &copy; {new Date().getFullYear()} Quran PDF Generator
       </footer>
     </div>
   );

@@ -34,12 +34,12 @@ export async function generatePDFWithPuppeteer(
           color: #2563eb; 
         }
         .arabic { 
-          font-size: 18px; 
+          font-size: 34px; 
           line-height: 1.8; 
           margin: 10px 0; 
         }
         .translation { 
-          font-size: 14px; 
+          font-size: 20px; 
           color: #555; 
           direction: ltr; 
           text-align: left; 
