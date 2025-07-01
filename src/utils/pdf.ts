@@ -1,11 +1,17 @@
 // src/utils/pdf.ts
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "chrome-aws-lambda";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function generatePDFWithPuppeteer(
-  surahDataArr: { surah: any, verses: any[] }[]
+  surahDataArr: { surah: any; verses: any[] }[]
 ): Promise<Uint8Array> {
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath,
+    headless: chromium.headless,
+  });
   const page = await browser.newPage();
 
   const html = `
@@ -85,7 +91,9 @@ export async function generatePDFWithPuppeteer(
       <div class="cover-page">
         <div class="cover-title">Daily Dose of Quran Combined</div>
       </div>
-      ${surahDataArr.map(({ surah, verses }) => `
+      ${surahDataArr
+        .map(
+          ({ surah, verses }) => `
         <div class="surah-section">
           <div class="title">
             <h1>سورة ${surah.name_arabic}</h1>
@@ -93,20 +101,28 @@ export async function generatePDFWithPuppeteer(
             <p>${surah.verses_count} verses</p>
           </div>
           ${verses
-            .map((verse) => `
+            .map(
+              (verse) => `
               <div class="verse">
-                <div class="verse-number">${verse.verse_key.split(":")[1]}.</div>
+                <div class="verse-number">${
+                  verse.verse_key.split(":")[1]
+                }.</div>
                 <div class="arabic">${verse.text_uthmani}</div>
               </div>
               ${
-                verse.translations && verse.translations[0] && verse.translations[0].text
+                verse.translations &&
+                verse.translations[0] &&
+                verse.translations[0].text
                   ? `<div class=\"translation-block\"><div class=\"translation\">${verse.translations[0].text}</div></div>`
-                  : "<div class=\"translation-block\"></div>"
+                  : '<div class="translation-block"></div>'
               }
-            `)
+            `
+            )
             .join("")}
         </div>
-      `).join("")}
+      `
+        )
+        .join("")}
     </body>
     </html>
   `;
