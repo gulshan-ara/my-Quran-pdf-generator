@@ -43,7 +43,7 @@ export default function Home() {
       // Clear input fields after generation
       setSelectedSurahs([]);
       if (surahRef.current) surahRef.current.value = "1";
-    } catch (e) {
+    } catch {
       alert("Failed to generate PDF");
     }
     setLoading(false);

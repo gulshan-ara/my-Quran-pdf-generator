@@ -1,6 +1,7 @@
 // src/utils/pdf.ts
 import puppeteer from "puppeteer";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function generatePDFWithPuppeteer(
   surahDataArr: { surah: any, verses: any[] }[]
 ): Promise<Uint8Array> {
