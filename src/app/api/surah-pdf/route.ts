@@ -5,7 +5,7 @@ import { generatePDFWithPuppeteer } from '@/utils/pdf';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const surahParam = searchParams.get('surah') || '1';
-  const translationId = searchParams.get('translation') || '131';
+  const translationId = searchParams.get('translation') || '20';
 
   // Support multiple surah IDs
   const surahIds = surahParam.split(',');
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     );
     const versesData = await versesRes.json();
 
-    // Fetch translations (e.g., English, id=131)
+    // Fetch translations 
     const translationRes = await fetch(
       `https://api.quran.com/api/v4/quran/translations/${translationId}?chapter_number=${surahId}`
     );

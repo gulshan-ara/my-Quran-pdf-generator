@@ -1,14 +1,12 @@
 "use client";
 import surahNames from "../utils/surahNames.json";
 import { useRef, useState } from "react";
-import { TRANSLATION_OPTIONS } from "../utils/translations";
 
 export default function Home() {
   const [selectedSurahs, setSelectedSurahs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const surahRef = useRef<HTMLSelectElement>(null);
-  const translationRef = useRef<HTMLSelectElement>(null);
 
   const handleAddSurah = () => {
     const surahValue = surahRef.current!.value;
@@ -30,9 +28,8 @@ export default function Home() {
     setPdfUrl(null);
     // Sort surahs numerically
     const sortedSurahs = [...selectedSurahs].sort((a, b) => Number(a) - Number(b));
-    const translation = translationRef.current!.value;
     const surahsParam = sortedSurahs.join(',');
-    const url = `/api/surah-pdf?surah=${surahsParam}&translation=${translation}`;
+    const url = `/api/surah-pdf?surah=${surahsParam}`;
     try {
       const res = await fetch(url);
       if (!res.ok) {
@@ -46,7 +43,6 @@ export default function Home() {
       // Clear input fields after generation
       setSelectedSurahs([]);
       if (surahRef.current) surahRef.current.value = "1";
-      if (translationRef.current) translationRef.current.value = "131";
     } catch (e) {
       alert("Failed to generate PDF");
     }
@@ -114,20 +110,6 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="translation" className="font-medium text-[#334155]">Translation</label>
-            <select
-              id="translation"
-              name="translation"
-              className="border border-[#cbd5e1] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#6366f1] text-[#334155] text-base"
-              defaultValue="131"
-              ref={translationRef}
-            >
-              {TRANSLATION_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
           {(!pdfUrl) && (
             <button
               type="button"
@@ -151,7 +133,7 @@ export default function Home() {
               </button>
               <a
                 href={pdfUrl}
-                download={`surahs-${selectedSurahs.sort((a, b) => Number(a) - Number(b)).join('-')}.pdf`}
+                download={`daily-dose-of-Quran.pdf`}
                 className="flex-1 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-semibold py-2 rounded-xl shadow transition-colors text-base tracking-wide text-center"
               >
                 Download PDF
