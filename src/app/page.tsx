@@ -81,7 +81,9 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleAddSurah}
-                className="bg-[#6366f1] hover:bg-[#4f46e5] text-white font-semibold px-4 py-2 rounded-xl shadow transition-colors text-base tracking-wide"
+                className={`font-semibold px-4 py-2 rounded-xl shadow transition-colors text-base tracking-wide
+                  ${pdfUrl ? 'bg-[#cbd5e1] text-[#64748b] cursor-not-allowed' : 'bg-[#6366f1] hover:bg-[#4f46e5] text-white'}`}
+                disabled={!!pdfUrl}
               >
                 Add
               </button>
