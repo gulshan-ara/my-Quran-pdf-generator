@@ -1,6 +1,6 @@
 // src/utils/pdf.ts
 import puppeteer from "puppeteer-core";
-import chromium from "chrome-aws-lambda";
+import chromium from "@sparticuz/chromium";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function generatePDFWithPuppeteer(
@@ -8,9 +8,8 @@ export async function generatePDFWithPuppeteer(
 ): Promise<Uint8Array> {
   const browser = await puppeteer.launch({
     args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath,
-    headless: chromium.headless,
+    executablePath: await chromium.executablePath(),
+    headless: true,
   });
   const page = await browser.newPage();
 
