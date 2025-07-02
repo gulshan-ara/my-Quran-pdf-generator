@@ -13,29 +13,36 @@ export async function GET(request: NextRequest) {
 
   for (const surahId of surahIds) {
     // Fetch surah info
-    const surahRes = await fetch(`https://api.quran.com/api/v4/chapters/${surahId}`);
-    const surahData = await surahRes.json();
-    const surah = surahData.chapter;
+    try {
+      const surahRes = await fetch(`https://api.quran.com/api/v4/chapters/${surahId}`);
+      const surahData = await surahRes.json();
+      const surah = surahData.chapter;
 
-    // Fetch verses
-    const versesRes = await fetch(
-      `https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${surahId}`
-    );
-    const versesData = await versesRes.json();
+      // Fetch verses
+      const versesRes = await fetch(
+        `https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${surahId}`
+      );
+      const versesData = await versesRes.json();
 
-    // Fetch translations 
-    const translationRes = await fetch(
-      `https://api.quran.com/api/v4/quran/translations/${translationId}?chapter_number=${surahId}`
-    );
-    const translationData = await translationRes.json();
+      // Fetch translations 
+      const translationRes = await fetch(
+        `https://api.quran.com/api/v4/quran/translations/${translationId}?chapter_number=${surahId}`
+      );
+      const translationData = await translationRes.json();
 
-    // Merge translations into verses
-    const verses = versesData.verses.map((verse: any, idx: number) => ({
-      ...verse,
-      translations: [translationData.translations[idx]],
-    }));
+      // Merge translations into verses
+      const verses = versesData.verses.map((verse: any, idx: number) => ({
+        ...verse,
+        translations: [translationData.translations[idx]],
+      }));
 
-    surahDataArr.push({ surah, verses });
+      surahDataArr.push({ surah, verses });
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Failed to generate PDF', details: error instanceof Error ? error.message : 'Unknown error' },
+        { status: 500 }
+      );
+    }
   }
 
   // Generate PDF for all surahs
