@@ -12,31 +12,25 @@ export async function GET(request: NextRequest) {
   const surahDataArr = [];
 
   for (const surahId of surahIds) {
-    // Fetch surah info
     try {
+      // Fetch surah info
       const surahRes = await fetch(`https://api.quran.com/api/v4/chapters/${surahId}`);
       const surahData = await surahRes.json();
-      const surah = surahData.chapter;
-
-      // Fetch verses
+      
+      // Use composite API call for verses with translations
       const versesRes = await fetch(
-        `https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${surahId}`
+        `https://api.quran.com/api/v4/verses/by_chapter/${surahId}?translations=${translationId}&text_type=uthmani`
       );
       const versesData = await versesRes.json();
-
-      // Fetch translations 
-      const translationRes = await fetch(
-        `https://api.quran.com/api/v4/quran/translations/${translationId}?chapter_number=${surahId}`
-      );
-      const translationData = await translationRes.json();
-
-      // Merge translations into verses
-      const verses = versesData.verses.map((verse: any, idx: number) => ({
-        ...verse,
-        translations: [translationData.translations[idx]],
-      }));
-
-      surahDataArr.push({ surah, verses });
+      
+      // Data should already be properly structured
+      const verses = versesData.verses || [];
+      
+      surahDataArr.push({ 
+        surah: surahData.chapter, 
+        verses 
+      });
+      
     } catch (error) {
       return NextResponse.json(
         { error: 'Failed to generate PDF', details: error instanceof Error ? error.message : 'Unknown error' },
