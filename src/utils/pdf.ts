@@ -1,32 +1,68 @@
 // src/utils/pdf.ts
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import fs from "fs";
 
 export async function generatePDFWithPuppeteer(
   surahDataArr: { surah: any; verses: any[] }[]
 ): Promise<Uint8Array> {
   let browser;
-  
+
   try {
-    // Add more chromium args for better compatibility
+    // Determine if we're in a serverless environment
+    const isServerless = process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined;
+
+    let executablePath: string;
+    let browserArgs: string[];
+
+    if (isServerless) {
+      // For serverless environments (Vercel, AWS Lambda, etc.)
+      executablePath = await chromium.executablePath();
+      browserArgs = chromium.args;
+    } else {
+      // For local development
+      try {
+        executablePath = await chromium.executablePath();
+        browserArgs = chromium.args;
+      } catch (error) {
+        console.warn("Chromium not found, trying local Chrome/Chromium...");
+        // Fallback to local Chrome installation
+        executablePath =
+          process.platform === "win32"
+            ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+            : process.platform === "darwin"
+            ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            : fs.existsSync("/usr/bin/google-chrome-stable")
+            ? "/usr/bin/google-chrome-stable"
+            : "/usr/bin/chromium-browser";
+            
+        browserArgs = [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+        ];
+      }
+    }
+
     browser = await puppeteer.launch({
       args: [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-        '--no-zygote',
+        ...browserArgs,
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--single-process",
+        "--no-zygote",
       ],
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: true,
-      timeout: 30000, // 30 second timeout
+      timeout: 30000,
     });
 
     const page = await browser.newPage();
-    
-    // Set a larger viewport for better rendering
+
+    // Rest of your code remains the same...
     await page.setViewport({ width: 1200, height: 800 });
 
     const html = `
@@ -113,37 +149,43 @@ export async function generatePDFWithPuppeteer(
           <div class="cover-title">Daily Dose of Quran Combined</div>
         </div>
         ${surahDataArr
-          .map(({ surah, verses }) => `
+          .map(
+            ({ surah, verses }) => `
             <div class="surah-section">
               <div class="title">
-                <h1>سورة ${surah?.name_arabic || 'Unknown'}</h1>
-                <h2>Surah ${surah?.name_simple || 'Unknown'}</h2>
+                <h1>سورة ${surah?.name_arabic || "Unknown"}</h1>
+                <h2>Surah ${surah?.name_simple || "Unknown"}</h2>
                 <p>${surah?.verses_count || verses?.length || 0} verses</p>
               </div>
-              ${verses
-                ?.map((verse) => `
+              ${
+                verses
+                  ?.map(
+                    (verse) => `
                   <div class="verse">
                     <div class="verse-number">${
-                      verse?.verse_key?.split(":")[1] || '?'
+                      verse?.verse_key?.split(":")[1] || "?"
                     }.</div>
-                    <div class="arabic">${verse?.text_uthmani || ''}</div>
+                    <div class="arabic">${verse?.text_uthmani || ""}</div>
                   </div>
                   ${
                     verse?.translations?.[0]?.text
                       ? `<div class="translation-block"><div class="translation">${verse.translations[0].text}</div></div>`
                       : '<div class="translation-block"></div>'
                   }
-                `)
-                .join("") || ''}
+                `
+                  )
+                  .join("") || ""
+              }
             </div>
-          `)
+          `
+          )
           .join("")}
       </body>
       </html>
     `;
 
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
-    
+    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30000 });
+
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -158,8 +200,12 @@ export async function generatePDFWithPuppeteer(
 
     return pdf;
   } catch (error) {
-    console.error('Puppeteer error:', error);
-    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error("Puppeteer error:", error);
+    throw new Error(
+      `PDF generation failed: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   } finally {
     if (browser) {
       await browser.close();
